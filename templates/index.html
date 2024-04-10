@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handwriting Recognition</title>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+            integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+            crossorigin="anonymous"></script>
+</head>
+<body>
+    <h2>Handwriting Recognition</h2>
+    <canvas id="canvas" width="280" height="280" style="border: 1px solid black;"></canvas>
+    <br>
+    <button onclick="recognizeHandwriting()">Recognize</button>
+    <div id="prediction"></div>
+
+    <script>
+        var isDrawing = false; // Variable para rastrear si se está dibujando
+        var canvas = document.getElementById('canvas');
+        var ctx = canvas.getContext('2d');
+        var lastX, lastY;
+
+        // Función para iniciar el dibujo
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        }
+
+        // Función para dibujar durante el movimiento del ratón
+        function draw(e) {
+            if (!isDrawing) return; // Si no se está dibujando, salir
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.strokeStyle = 'black'; // Color del trazo
+            ctx.lineWidth = 2; // Grosor del trazo
+            ctx.stroke();
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        }
+
+        // Función para detener el dibujo y procesar los datos de píxeles al soltar el botón del mouse
+        function stopDrawing() {
+            if (isDrawing) {
+                isDrawing = false;
+                var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                var pixels = [];
+
+                // Recorrer el área dibujada para obtener los datos de píxeles
+                for (var x = 0; x < 28; x++) {
+                    for (var y = 0; y < 28; y++) {
+                        var imgData = ctx.getImageData(y, x, 1, 1);
+                        var data = imgData.data;
+                        var color = data[3] / 255; // Alpha channel como escala de grises (0-1)
+                        color = (Math.round(color * 100) / 100).toFixed(2); // Redondear y limitar a 2 decimales
+                        pixels.push(color);
+                    }
+                }
+
+                // Enviar los datos de píxeles al servidor usando $.post
+                $.post("http://localhost:8000", { pixels: pixels.join(",") }, function(response) {
+                    console.log("Resultado: " + response);
+                    $("#prediction").text('Predicted digit: ' + response); // Actualizar la predicción en el HTML
+                });
+            }
+        }
+
+        // Evento para iniciar el dibujo al hacer clic en el canvas
+        canvas.addEventListener('mousedown', startDrawing);
+
+        // Evento para dibujar al mover el ratón dentro del canvas
+        canvas.addEventListener('mousemove', draw);
+
+        // Evento para detener el dibujo al soltar el botón del mouse
+        canvas.addEventListener('mouseup', stopDrawing);
+
+        // Evento para detener el dibujo al salir del canvas
+        canvas.addEventListener('mouseleave', stopDrawing);
+
+        // Función para reconocer el dibujo y enviarlo al servidor
+        function recognizeHandwriting() {
+            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            var pixels = [];
+
+            // Recorrer los datos de píxeles para obtener la información de escala de grises
+            for (var i = 0; i < imageData.data.length; i += 4) {
+                var grayScaleValue = imageData.data[i] / 255; // Escala de grises normalizada (0-1)
+                pixels.push(grayScaleValue.toFixed(2)); // Añadir valor al arreglo de píxeles
+            }
+
+            // Enviar los datos de píxeles al servidor usando $.post
+            $.post("http://localhost:8000", {pixeles: pixels.join(",")},
+                function(response) {
+                    console.log("Resultado: " + response);
+                    $("#resultado").html(response); // resultado en el html
+                });
+        }
+    </script>
+</body>
+</html>
