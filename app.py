@@ -99,11 +99,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         prediction = str(np.argmax(prediction_values))
         print("Predicción final:", prediction)
 
-        # Regresar respuesta a la petición HTTP
-        self.send_response(200)
-        self.send_header("Content-type", "text/plain")
-        self.end_headers()
-        self.wfile.write(prediction.encode())
 
         # Regresar respuesta a la peticion HTTP
         self.send_response(200)
@@ -114,7 +109,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     print("Iniciando el servidor...")
-    server_address = ('localhost', 8000)
-    httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
+    server = HTTPServer(('localhost', 8000), SimpleHTTPRequestHandler)
     print('Servidor en ejecución en http://localhost:8000/')
-    httpd.serve_forever()
+    server.serve_forever()
